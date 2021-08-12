@@ -14,15 +14,82 @@ MainScene::~MainScene()
 void MainScene::initScene()
 {
     // Window Init
-    setFixedSize(WINDOW_W, WINDOW_H);
+//    showFullScreen();
+    setFixedSize(WINDOW_W + WINDOW_EXTRA, WINDOW_H);
     setWindowTitle(WINDOW_TITLE);
     setWindowIcon(QIcon(WINDOW_ICON_PATH));
+    setFocus();
 
     // Game Init
     m_Timer.setInterval(GAME_RATE);
 
     m_recorder = 0;
     srand((unsigned int)time(NULL));
+    m_score = 0;
+    m_life = LIFE_START;
+    m_energy = 0;
+    nplane = true;
+
+
+    name = new QLabel(this);
+    score = new QLabel(this);
+    life = new QLabel(this);
+    energy = new QLabel(this);
+    QFont font = name->font();
+    font.setPointSize(36);
+    font.setBold(true);
+    name->move(WINDOW_W + 30, 50);
+    name->resize(WINDOW_EXTRA - 60, 50);
+    name->setText("LPop");
+    name->setFont(font);
+    font.setPointSize(24);
+    score->move(WINDOW_W + 30, 125);
+    score->resize(WINDOW_EXTRA - 60, 50);
+    score->setText(SCORE_PRE_TEXT + QString::number(m_score));
+    score->setFont(font);
+    life->move(WINDOW_W + 30, 200);
+    life->resize(WINDOW_EXTRA - 60, 50);
+    life->setText(LIFE_PRE_TEXT + QString::number(m_life));
+    life->setFont(font);
+    energy->move(WINDOW_W + 30, 275);
+    energy->resize(WINDOW_EXTRA - 60, 50);
+    energy->setText(ENERGY_PRE_TEXT + QString::number(m_energy) + "/" + QString::number(ENERGY_LINE));
+    energy->setFont(font);
+
+//    quitb = new QLabel(this);
+//    quitb->move(WINDOW_W + 30, WINDOW_H - 100);
+//    quitb->resize(WINDOW_EXTRA - 60, 50);
+//    quitb->setText("Quit (CTRL-Q)");
+//    quitb->setFont(font);
+    font.setPointSize(16);
+    font.setBold(false);
+    all = new QLabel(this);
+    all->move(WINDOW_W + 30, 350);
+    all->resize(WINDOW_EXTRA - 60, WINDOW_H - 350 - 30);
+    all->setText("   LPop: A simple game written in Qt.\n\n   Use mouse or keyboard to move the blue plane to crash the red planes. Keep far from the bullets.\n - Press 'Space' key to use the skill.\n - Press 'Q' to quit.");
+    all->setFont(font);
+    all->setWordWrap(true);
+
+
+//    eneb = new QPushButton(this);
+//    eneb->move(WINDOW_W + 30, WINDOW_H - 175);
+//    eneb->resize(WINDOW_EXTRA - 60, 50);
+//    eneb->setText("Skill (Space)");
+//    eneb->setFont(font);
+//    connect (eneb, &QPushButton::clicked, [=](){
+//        EnergyPlay();
+//    });
+
+//    quitb = new QPushButton(this);
+//    quitb->move(WINDOW_W + 30, WINDOW_H - 100);
+//    quitb->resize(WINDOW_EXTRA - 60, 50);
+//    quitb->setText("Quit");
+//    quitb->setFont(font);
+//    connect(quitb, &QPushButton::clicked, [=](){
+//        close();
+//    });
+
+
 }
 
 void MainScene::playGame()
@@ -82,6 +149,7 @@ void MainScene::updatePosition()
 
 void MainScene::enemyToScene()
 {
+    if (!nplane) return;
     m_recorder++;
     if(m_recorder < ENEMY_INTERVAL)
     {
@@ -94,9 +162,7 @@ void MainScene::enemyToScene()
     {
         if(m_enemys[i].m_Free)
         {
-            //敌机空闲状态改为false
             m_enemys[i].m_Free = false;
-            //设置坐标
             m_enemys[i].m_X = rand() % (WINDOW_W - m_enemys[i].m_Rect.width());
             m_enemys[i].m_Y = -m_enemys[i].m_Rect.height();
             break;
@@ -123,6 +189,11 @@ void MainScene::collisionDetection()
                 m_enemys[i].m_Free = true;
                 m_plane.m_bullets[j].m_Free = true;
 
+                m_score += SCORE_BOMB_DEFAULT;
+                m_energy += ENERGY_BOMB_DEFAULT;
+                updateScore();
+                updateEnergy();
+
                 for(int k = 0 ; k < BOMB_NUM;k++)
                 {
                     if(m_bombs[k].m_Free)
@@ -133,9 +204,31 @@ void MainScene::collisionDetection()
 
                         m_bombs[k].m_X = m_enemys[i].m_X;
                         m_bombs[k].m_Y = m_enemys[i].m_Y;
+
+
                         break;
                     }
                 }
+            }
+        }
+    }
+    for(int i = 0 ;i < ENEMY_NUM;i++)
+    {
+        for(int j = 0 ; j < ENEMY_BULLET_NUM;j++)
+        {
+            if (m_enemys[i].m_bullets[j].m_Free)
+            {
+                continue;
+            }
+            QRect temp_rect = m_enemys[i].m_bullets[j].m_Rect;
+            temp_rect.setWidth(10);
+            temp_rect.setHeight(10);
+            if(m_plane.m_Rect.intersects(temp_rect))
+            {
+                m_enemys[i].m_bullets[j].m_Free = true;
+                m_life -= LIFE_BULLET_DEFAULT;
+                m_energy -= ENERGY_LOSE;
+                updateLife();
             }
         }
     }
@@ -232,5 +325,75 @@ void MainScene::keyPressEvent(QKeyEvent *event)
         m_plane.m_Y=(m_plane.m_Y+PLANE_KEYBOARD_MOVE+m_plane.m_Plane.height()>WINDOW_H)?m_plane.m_Y:m_plane.m_Y+PLANE_KEYBOARD_MOVE;
 
     }
+    if (event->key() == Qt::Key_Space)
+    {
+        EnergyPlay();
+    }
+    if (event->key() == Qt::Key_Q)
+    {
+        close();
+    }
+    if (event->key() == Qt::Key_H)
+    {
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("Help - LPop Game");
+        msgBox.setText("Use mouse or keyboard to move the blue plane to crash the red plane.\nIf your energy is more than the line, you can use the skill (Press space to use) to crash all the planes.\nYou must keep far from the bullets.");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.exec();
+    }
     update();
+}
+
+void MainScene::updateScore()
+{
+    score->setText(SCORE_PRE_TEXT + QString::number(m_score));
+}
+
+void MainScene::updateLife()
+{
+    life->setText(LIFE_PRE_TEXT + QString::number(m_life));
+    if (m_life <= 0)
+    {
+        hide();
+        int ret = QMessageBox::	critical(this, tr("Game over - LPop"),
+                   tr("Click Cancel to exit."),
+                   QMessageBox::Cancel,
+                   QMessageBox::Cancel);
+        switch (ret) {
+            case QMessageBox::Ok:
+                initScene();
+                playGame();
+                show();
+                break;
+            case QMessageBox::Cancel:
+                close();
+                break;
+            default:
+              // should never be reached
+              break;
+        }
+    }
+}
+
+void MainScene::updateEnergy()
+{
+    energy->setText(ENERGY_PRE_TEXT + QString::number(m_energy) + "/" + QString::number(ENERGY_LINE));
+}
+
+void MainScene::EnergyPlay()
+{
+    if (m_energy >= ENERGY_LINE)
+    {
+        m_energy -= ENERGY_LINE;
+        updateEnergy();
+        for (int i = 0; i < ENEMY_NUM; i ++)
+        {
+            m_enemys[i].m_Free = true;
+            for (int j = 0; j < ENEMY_BULLET_NUM; j ++)
+            {
+                m_enemys[i].m_bullets[j].m_Free = true;
+            }
+        }
+    }
 }

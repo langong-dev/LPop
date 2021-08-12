@@ -3,7 +3,7 @@
 EnemyPlane::EnemyPlane()
 {
     m_enemy.load(ENEMY_PATH);
-    m_X = 0;
+    m_X = 2 * WINDOW_W;
     m_Y = 0;
     m_Free = true;
     m_Speed = ENEMY_SPEED;
@@ -46,7 +46,7 @@ void EnemyPlane::shoot()
         {
             m_bullets[i].m_Free = false;
             m_bullets[i].m_X = m_X + m_Rect.width()*0.5 - 10;
-            m_bullets[i].m_Y = m_Y - 25 ;
+            m_bullets[i].m_Y = m_Y + 25 ;
             break;
         }
     }

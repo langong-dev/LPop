@@ -8,7 +8,7 @@ EnemyBullet::EnemyBullet()
 
         // Speed
         m_mx = dx[0];
-        m_my = 5;
+        m_my = dy[0];
 //    }
     // Pos
     m_X = WINDOW_W*0.5 - m_Bullet.width()*0.5;
@@ -39,5 +39,5 @@ void EnemyBullet::updatePosition()
     {
         m_Free = true;
     }
-    qDebug() << "OUT:" <<WINDOW_H+m_Rect.height();
+//    qDebug() << "OUT:" <<WINDOW_H+m_Rect.height();
 }
