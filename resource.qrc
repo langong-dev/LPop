@@ -46,6 +46,7 @@
         <file>resources/img-plane_7.png</file>
         <file>resources/LanGongIconMode.ico</file>
         <file>resources/bg3_1.png</file>
-        <file>resources/boos1.png</file>
+        <file>resources/boss1.png</file>
+        <file>resources/bullet_c.png</file>
     </qresource>
 </RCC>

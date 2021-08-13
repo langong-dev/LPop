@@ -10,6 +10,8 @@ CONFIG += c++11
 
 SOURCES += \
     bomb.cpp \
+    boss.cpp \
+    bossbullet.cpp \
     bullet.cpp \
     enemybullet.cpp \
     enemyplane.cpp \
@@ -20,13 +22,16 @@ SOURCES += \
 
 HEADERS += \
     bomb.h \
+    boss.h \
+    bossbullet.h \
     bullet.h \
     config.h \
     enemybullet.h \
     enemyplane.h \
     mainscene.h \
     map.h \
-    plane.h
+    plane.h \
+    sboss.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

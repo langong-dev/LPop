@@ -10,6 +10,7 @@ class EnemyBullet
 public:
     EnemyBullet();
 
+    void init();
     void updatePosition();
 
     QPixmap m_Bullet;

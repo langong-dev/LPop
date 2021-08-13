@@ -2,16 +2,15 @@
 
 EnemyBullet::EnemyBullet()
 {
-//    if (type == 0)
-//    {
-        m_Bullet.load(ENEMY_BULLET_PATH);
+    m_Bullet.load(ENEMY_BULLET_PATH);
+    m_mx = dx[0];
+    m_my = dy[0];
+    init();
+}
 
-        // Speed
-        m_mx = dx[0];
-        m_my = dy[0];
-//    }
-    // Pos
-    m_X = WINDOW_W*0.5 - m_Bullet.width()*0.5;
+void EnemyBullet::init()
+{
+    m_X = WINDOW_W*2;
     m_Y = 0;
 
     // Status
@@ -33,6 +32,7 @@ void EnemyBullet::updatePosition()
     // Move down
     m_X  += m_mx;
     m_Y  += m_my;
+    qDebug () << "MOVE TO " << m_X << "," << m_Y;
     m_Rect.moveTo(m_X,m_Y);
 
     if(m_X <= -m_Rect.width() || m_X >= WINDOW_W + m_Rect.width() || m_Y <= -m_Rect.height() ||  m_Y >= WINDOW_H+m_Rect.height())

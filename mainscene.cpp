@@ -29,6 +29,7 @@ void MainScene::initScene()
     m_life = LIFE_START;
     m_energy = 0;
     nplane = true;
+    bosspos = -1;
 
 
     name = new QLabel(this);
@@ -56,19 +57,28 @@ void MainScene::initScene()
     energy->setText(ENERGY_PRE_TEXT + QString::number(m_energy) + "/" + QString::number(ENERGY_LINE));
     energy->setFont(font);
 
+    bossbar = new QLabel(this);
+    bossbar->setFont(font);
+
 //    quitb = new QLabel(this);
 //    quitb->move(WINDOW_W + 30, WINDOW_H - 100);
 //    quitb->resize(WINDOW_EXTRA - 60, 50);
 //    quitb->setText("Quit (CTRL-Q)");
 //    quitb->setFont(font);
-    font.setPointSize(16);
-    font.setBold(false);
+    font.setPointSize(14);
+//    font.setBold(false);
     all = new QLabel(this);
     all->move(WINDOW_W + 30, 350);
-    all->resize(WINDOW_EXTRA - 60, WINDOW_H - 350 - 30);
-    all->setText("   LPop: A simple game written in Qt.\n\n   Use mouse or keyboard to move the blue plane to crash the red planes. Keep far from the bullets.\n - Press 'Space' key to use the skill.\n - Press 'Q' to quit.");
+    all->resize(WINDOW_EXTRA - 60, WINDOW_H - 350 - 70);
+    all->setText("   LPop: A simple game written in Qt.\n   Use mouse or keyboard to move the blue plane to crash the red planes. Keep far from the bullets.\n - Press 'Space' key to use the skill.\n - 'Q' to quit, 'R' to restart.");
     all->setFont(font);
     all->setWordWrap(true);
+    status = new QLabel(this);
+    status->move(WINDOW_W + 30, WINDOW_H - 50);
+    status->resize(WINDOW_EXTRA - 60, 30);
+    status->setText("   The LPop game is made by 5+1.");
+    status->setFont(font);
+
 
 
 //    eneb = new QPushButton(this);
@@ -122,27 +132,47 @@ void MainScene::updatePosition()
         }
     }
 
-    for(int i = 0 ; i< ENEMY_NUM;i++)
+    if (nplane)
     {
-       if(m_enemys[i].m_Free == false)
-       {
-            m_enemys[i].updatePosition();
-       }
-       m_enemys[i].shoot();
-       for(int j = 0 ;j < ENEMY_BULLET_NUM;j++)
-       {
-           if(!m_enemys[i].m_bullets[j].m_Free)
-           {
-               m_enemys[i].m_bullets[j].updatePosition();
-           }
-       }
-    }
-
-    for(int i = 0 ; i < BOMB_NUM;i++)
-    {
-        if(m_bombs[i].m_Free == false)
+        for(int i = 0 ; i< ENEMY_NUM;i++)
         {
-           m_bombs[i].updateInfo();
+           if(m_enemys[i].m_Free == false)
+           {
+                m_enemys[i].updatePosition();
+           }
+           m_enemys[i].shoot();
+           for(int j = 0 ;j < ENEMY_BULLET_NUM;j++)
+           {
+               if(!m_enemys[i].m_bullets[j].m_Free)
+               {
+                   m_enemys[i].m_bullets[j].updatePosition();
+               }
+           }
+        }
+
+        for(int i = 0 ; i < BOMB_NUM;i++)
+        {
+            if(m_bombs[i].m_Free == false)
+            {
+               m_bombs[i].updateInfo();
+            }
+        }
+    }
+    else
+    {
+        if (m_boss->m_Free) return;
+        m_boss->updatePosition();
+        m_boss->shoot();
+        for (int j = 0 ;j < CONSTBOSS.BOSSL[bosspos].BOSS_BULLET_COUNT;j++)
+        {
+            for (int i = 0; i < ENEMY_BULLET_NUM; i ++)
+            {
+                if (!m_boss->m_bullets[i][j]->m_Free)
+                {
+                    qDebug() << "UPDATE" <<i <<j;
+                    m_boss->m_bullets[i][j]->updatePosition();
+                }
+            }
         }
     }
 }
@@ -168,6 +198,28 @@ void MainScene::enemyToScene()
             break;
         }
     }
+}
+
+void MainScene::bossToScene()
+{
+    QMessageBox::information(this, tr("Boss is coming!"),
+       tr("The boss is coming, good luck!"),
+       QMessageBox::Ok,
+       QMessageBox::Ok);
+
+
+    bosspos ++;
+    nplane = false;
+    m_boss = new Boss(bosspos);
+    m_boss->m_Free = false;
+    bossbar->move(30, 30);
+    bossbar->resize(WINDOW_W-60, 50);
+    bossbar->setText(CONSTBOSS.BOSSL[bosspos].BOSS_NAME+" : "+QString::number(m_boss->m_life));
+    bossbar->setStyleSheet("QLabel { color : white; }");
+
+    QEventLoop eventloop;
+    QTimer::singleShot(1000, &eventloop, SLOT(quit()));
+    eventloop.exec();
 }
 
 void MainScene::collisionDetection()
@@ -229,9 +281,88 @@ void MainScene::collisionDetection()
                 m_life -= LIFE_BULLET_DEFAULT;
                 m_energy -= ENERGY_LOSE;
                 updateLife();
+                updateEnergy();
             }
         }
     }
+
+    if (!nplane)
+    {
+        for (int i = 0; i < CONSTBOSS.BOSSL[bosspos].BOSS_BULLET_COUNT; i ++)
+        {
+            for (int j = 0; j < ENEMY_BULLET_NUM; j ++)
+            {
+                if (m_boss->m_bullets[j][i]->m_Free) continue;
+                QRect temp_rect = m_boss->m_bullets[j][i]->m_Rect;
+                temp_rect.setWidth(10);
+                temp_rect.setHeight(10);
+                if(m_plane.m_Rect.intersects(temp_rect))
+                {
+                    m_boss->m_bullets[j][i]->m_Free = true;
+                    m_life -= CONSTBOSS.BOSSL[bosspos].BOSS_BULLET_KILL[i];
+                    m_energy -= ENERGY_LOSE;
+                    updateLife();
+                    updateEnergy();
+                }
+            }
+        }
+        if (!m_boss->m_Free)
+        {
+            for(int j = 0 ; j < BULLET_NUM;j++)
+            {
+                if(m_plane.m_bullets[j].m_Free)
+                {
+                    continue;
+                }
+                if(m_boss->m_Rect.intersects(m_plane.m_bullets[j].m_Rect))
+                {
+                    m_plane.m_bullets[j].m_Free = true;
+
+                    m_score += 2 * SCORE_BOMB_DEFAULT;
+                    m_energy += ENERGY_BOMB_DEFAULT;
+                    updateScore();
+                    updateEnergy();
+
+                    m_boss->m_life -= BULLET_KILL;
+                    updateBoss();
+                    if (m_boss->m_life <= 0)
+                    {
+
+                        deleteBoss();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+void MainScene::deleteBoss()
+{
+    m_boss->m_Free = true;
+    bossbar->hide();
+    for (int j = 0; j < CONSTBOSS.BOSSL[bosspos].BOSS_BULLET_COUNT; j ++)
+    {
+        for (int i = 0; i < ENEMY_BULLET_NUM; i ++)
+        {
+            qDebug() << i << j;
+            m_boss->m_bullets[i][j]->m_Free = true;
+        }
+    }
+    QMessageBox::information(this, tr("Well Done"),
+       tr("Well done, You won the boss. Let's continue!"),
+       QMessageBox::Ok,
+       QMessageBox::Ok);
+    m_score += 100, m_life = (m_life + 100) % LIFE_START;
+    updateScore();
+    updateLife();
+
+    QEventLoop eventloop;
+    QTimer::singleShot(1000, &eventloop, SLOT(quit()));
+    eventloop.exec();
+
+    nplane = true;
 }
 
 void MainScene::paintEvent(QPaintEvent *event)
@@ -254,26 +385,45 @@ void MainScene::paintEvent(QPaintEvent *event)
         }
     }
 
-    for(int i = 0 ; i< ENEMY_NUM;i++)
+    if (nplane)
     {
-        if(m_enemys[i].m_Free == false)
+        for(int i = 0 ; i< ENEMY_NUM;i++)
         {
-            painter.drawPixmap(m_enemys[i].m_X,m_enemys[i].m_Y,m_enemys[i].m_enemy);
-        }
-        for(int j = 0 ;j < ENEMY_BULLET_NUM;j++)
-        {
-            if(!m_enemys[i].m_bullets[j].m_Free)
+            if(m_enemys[i].m_Free == false)
             {
-                painter.drawPixmap(m_enemys[i].m_bullets[j].m_X,m_enemys[i].m_bullets[j].m_Y,m_enemys[i].m_bullets[j].m_Bullet);
+                painter.drawPixmap(m_enemys[i].m_X,m_enemys[i].m_Y,m_enemys[i].m_enemy);
+            }
+            for(int j = 0 ;j < ENEMY_BULLET_NUM;j++)
+            {
+                if(!m_enemys[i].m_bullets[j].m_Free && nplane)
+                {
+                    painter.drawPixmap(m_enemys[i].m_bullets[j].m_X,m_enemys[i].m_bullets[j].m_Y,m_enemys[i].m_bullets[j].m_Bullet);
+                }
+            }
+        }
+
+        for(int i = 0 ; i < BOMB_NUM;i++)
+        {
+            if(m_bombs[i].m_Free == false)
+            {
+               painter.drawPixmap(m_bombs[i].m_X,m_bombs[i].m_Y,m_bombs[i].m_pixArr[m_bombs[i].m_index]);
             }
         }
     }
-
-    for(int i = 0 ; i < BOMB_NUM;i++)
+    else
     {
-        if(m_bombs[i].m_Free == false)
+        qDebug() << "Draw Boss.";
+        if (!m_boss->m_Free)
         {
-           painter.drawPixmap(m_bombs[i].m_X,m_bombs[i].m_Y,m_bombs[i].m_pixArr[m_bombs[i].m_index]);
+            painter.drawPixmap(m_boss->m_X,m_boss->m_Y,m_boss->m_enemy);
+            for (int j = 0; j < CONSTBOSS.BOSSL[bosspos].BOSS_BULLET_COUNT; j ++)
+            {
+                for (int i = 0; i < ENEMY_BULLET_NUM; i ++)
+                {
+                    if (!m_boss->m_bullets[i][j]->m_Free)
+                    painter.drawPixmap(m_boss->m_bullets[i][j]->m_X,m_boss->m_bullets[i][j]->m_Y,m_boss->m_bullets[i][j]->m_Bullet);
+                }
+            }
         }
     }
 }
@@ -331,23 +481,31 @@ void MainScene::keyPressEvent(QKeyEvent *event)
     }
     if (event->key() == Qt::Key_Q)
     {
-        close();
+        qApp->exit(0);
     }
-    if (event->key() == Qt::Key_H)
+    if (event->key() == Qt::Key_R)
     {
-        QMessageBox msgBox;
-        msgBox.setWindowTitle("Help - LPop Game");
-        msgBox.setText("Use mouse or keyboard to move the blue plane to crash the red plane.\nIf your energy is more than the line, you can use the skill (Press space to use) to crash all the planes.\nYou must keep far from the bullets.");
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setDefaultButton(QMessageBox::Ok);
-        msgBox.exec();
+        qApp->exit(WINDOW_EXIT);
     }
+//    if (event->key() == Qt::Key_H)
+//    {
+//        QMessageBox msgBox;
+//        msgBox.setWindowTitle("Help - LPop Game");
+//        msgBox.setText("Use mouse or keyboard to move the blue plane to crash the red plane.\nIf your energy is more than the line, you can use the skill (Press space to use) to crash all the planes.\nYou must keep far from the bullets.");
+//        msgBox.setStandardButtons(QMessageBox::Ok);
+//        msgBox.setDefaultButton(QMessageBox::Ok);
+//        msgBox.exec();
+//    }
     update();
 }
 
 void MainScene::updateScore()
 {
     score->setText(SCORE_PRE_TEXT + QString::number(m_score));
+    if (m_score >= 1500 && bosspos < 0)
+    {
+        bossToScene();
+    }
 }
 
 void MainScene::updateLife()
@@ -355,19 +513,18 @@ void MainScene::updateLife()
     life->setText(LIFE_PRE_TEXT + QString::number(m_life));
     if (m_life <= 0)
     {
-        hide();
-        int ret = QMessageBox::	critical(this, tr("Game over - LPop"),
-                   tr("Click Cancel to exit."),
-                   QMessageBox::Cancel,
-                   QMessageBox::Cancel);
+//        hide();
+        QString str = "Game over, you have got " + QString::number(m_score) + ". Click Cancel to exit.";
+        int ret = QMessageBox::	critical(this, tr("Game over"),
+                   str,
+                   QMessageBox::Retry | QMessageBox::Cancel,
+                   QMessageBox::Retry);
         switch (ret) {
-            case QMessageBox::Ok:
-                initScene();
-                playGame();
-                show();
+            case QMessageBox::Retry:
+                qApp->exit(WINDOW_EXIT);
                 break;
             case QMessageBox::Cancel:
-                close();
+                qApp->exit(0);
                 break;
             default:
               // should never be reached
@@ -378,6 +535,7 @@ void MainScene::updateLife()
 
 void MainScene::updateEnergy()
 {
+    if (m_energy < 0) m_energy = 0;
     energy->setText(ENERGY_PRE_TEXT + QString::number(m_energy) + "/" + QString::number(ENERGY_LINE));
 }
 
@@ -387,13 +545,24 @@ void MainScene::EnergyPlay()
     {
         m_energy -= ENERGY_LINE;
         updateEnergy();
-        for (int i = 0; i < ENEMY_NUM; i ++)
-        {
-            m_enemys[i].m_Free = true;
-            for (int j = 0; j < ENEMY_BULLET_NUM; j ++)
+        if (nplane)
+            for (int i = 0; i < ENEMY_NUM; i ++)
             {
-                m_enemys[i].m_bullets[j].m_Free = true;
+                m_enemys[i].m_Free = true;
+                for (int j = 0; j < ENEMY_BULLET_NUM; j ++)
+                {
+                    m_enemys[i].m_bullets[j].m_Free = true;
+                }
             }
+        else
+        {
+            m_boss->m_life -= 50;
+            updateBoss();
         }
     }
+}
+
+void MainScene::updateBoss()
+{
+    bossbar->setText(CONSTBOSS.BOSSL[bosspos].BOSS_NAME+" : "+QString::number(m_boss->m_life));
 }

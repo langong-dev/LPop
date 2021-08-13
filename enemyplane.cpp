@@ -34,7 +34,7 @@ void EnemyPlane::updatePosition()
 void EnemyPlane::shoot()
 {
     m_recorder++;
-    if(m_recorder < ENEMY_BULLET_INTERVAL)
+    if(m_recorder < ENEMY_BULLET_INTERVAL || m_Free)
     {
         return;
     }

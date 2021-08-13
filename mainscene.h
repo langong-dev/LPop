@@ -10,13 +10,17 @@
 #include <QDebug>
 #include <QLabel>
 #include <QPushButton>
-#include <QMessagebox>
+#include <QMessageBox>
 #include <QSysInfo>
+#include <QEventLoop>
+#include <QApplication>
+#include <QDate>
 
 #include "config.h"
 #include "map.h"
 #include "plane.h"
 #include "enemyplane.h"
+#include "boss.h"
 #include "bomb.h"
 
 class MainScene : public QWidget
@@ -31,11 +35,14 @@ public:
     void playGame();
     void updatePosition();
     void enemyToScene();
+    void bossToScene();
     void collisionDetection();
     void updateScore();
     void updateLife();
     void updateEnergy();
     void EnergyPlay();
+    void updateBoss();
+    void deleteBoss();
 
     void paintEvent(QPaintEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
@@ -45,9 +52,12 @@ public:
     QTimer m_Timer;
     Plane m_plane;
     EnemyPlane m_enemys[ENEMY_NUM];
+    Boss *m_boss;
     int m_recorder;
     Bomb m_bombs[BOMB_NUM];
     bool nplane;
+    int bosspos;
+    SBG CONSTBOSS;
 
     long long m_score;
     long long m_life;
@@ -57,6 +67,8 @@ public:
     QLabel *life;
     QLabel *energy;
     QLabel *all;
+    QLabel *status;
+    QLabel *bossbar;
 //    QPushButton *quitb;
 //    QPushButton *eneb;
 
