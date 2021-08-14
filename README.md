@@ -39,7 +39,7 @@ Need `qt6-base` or `qmake`.
 - Via curl
 
 ```bash
-$ curl https://github.com/langong-dev/QMineSweeper/releases/download/0.0.1/QMineSweeper_0.0.1_Linux-MacOS_Compiler.sh > qmsi.sh
-# bash qmsi.sh
+$ curl https://github.com/langong-dev/LPop/releases/download/0.0.1/LPop_Linux.sh > lpopi.sh
+# bash lpopi.sh
 ```
 
